@@ -20,6 +20,7 @@ public class PlayerMovement : MonoBehaviour
     bool canMoveRight;
     bool canMoveUp;
     bool canMoveDown;
+    bool fever;
     public Transform Up;
     public Transform Down;
     public Transform Left;
@@ -44,11 +45,8 @@ public class PlayerMovement : MonoBehaviour
         canMoveDown = !Physics2D.OverlapCircle(Down.position, 0.1f, wall);
         canMoveLeft = !Physics2D.OverlapCircle(Left.position, 0.1f, wall);
         canMoveRight = !Physics2D.OverlapCircle(Right.position, 0.1f, wall);
-        Debug.Log(Up.position);
-        Debug.Log(Down.position);
-        Debug.Log(Left.position);
-        Debug.Log(Right.position);
         canMove = true;
+        fever = false;
         player = GetComponent<Rigidbody2D>();
         player.position = new Vector2(-1, -1);
         playerPrevPos = player.position;
@@ -68,11 +66,8 @@ public class PlayerMovement : MonoBehaviour
         {
             feverBar.fillAmount = combo / 10f;
         }
-        else
+        else if (combo == 10 && !fever)
         {
-            feverBar.fillAmount = 1f;
-            feverMessage.gameObject.SetActive(true);
-            combo = 10;
             StartCoroutine(Fever());
         }
 
@@ -216,8 +211,11 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x, player.position.y + 2);
-        combo += 1;
         score += eachNote;
+        if (!fever)
+        {
+            combo += 1;
+        }
         scoreDisplay.text = "Score: " + score.ToString();
 
         yield return new WaitForSeconds(1);
@@ -230,8 +228,11 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x, player.position.y - 2);
-        combo += 1;
         score += eachNote;
+        if (!fever)
+        {
+            combo += 1;
+        }
         scoreDisplay.text = "Score: " + score.ToString();
 
         yield return new WaitForSeconds(1);
@@ -244,8 +245,11 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x - 2, player.position.y);
-        combo += 1;
         score += eachNote;
+        if (!fever)
+        {
+            combo += 1;
+        }
         scoreDisplay.text = "Score: " + score.ToString();
 
         yield return new WaitForSeconds(1);
@@ -258,8 +262,11 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x + 2, player.position.y);
-        combo += 1;
         score += eachNote;
+        if (!fever)
+        {
+            combo += 1;
+        }
         scoreDisplay.text = "Score: " + score.ToString();
 
         yield return new WaitForSeconds(1);
@@ -270,12 +277,16 @@ public class PlayerMovement : MonoBehaviour
     IEnumerator Fever()
     {
         eachNote = 200f;
+        fever = true;
+        feverBar.fillAmount = 1f;
+        feverMessage.gameObject.SetActive(true);
 
         yield return new WaitForSeconds(10);
 
+        fever = false;
         feverBar.fillAmount = 0f;
         feverMessage.gameObject.SetActive(false);
-        combo = 0;
         eachNote = 100f;
+        combo = 0;
     }
 }
