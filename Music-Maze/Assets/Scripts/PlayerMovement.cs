@@ -8,7 +8,8 @@ public class PlayerMovement : MonoBehaviour
 {
     // Variable for displaying score and combo and lives remaining
     public TextMeshProUGUI scoreDisplay;
-    public TextMeshProUGUI comboDisplay;
+    public Image feverBar;
+    public TextMeshProUGUI feverMessage;
     public TextMeshProUGUI livesRemaining;
 
     // Variable for life
@@ -19,15 +20,19 @@ public class PlayerMovement : MonoBehaviour
     bool canMoveRight;
     bool canMoveUp;
     bool canMoveDown;
+    public Transform Up;
+    public Transform Down;
+    public Transform Left;
+    public Transform Right;
     bool canMove;
     Rigidbody2D player;
     Vector2 playerPrevPos;
     public LayerMask wall;
-    bool canTouchWall;
 
     // Variable for scoring and combo
     public float score { get; private set; }
-    public int combo { get; private set; }
+    public float combo { get; private set; }
+    float eachNote;
 
     // Fail message
     public TextMeshProUGUI failMessage;
@@ -35,89 +40,185 @@ public class PlayerMovement : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        canMoveLeft = true;
-        canMoveRight = true;
-        canMoveUp = true;
-        canMoveDown = true;
+        canMoveUp = !Physics2D.OverlapCircle(Up.position, 0.1f, wall);
+        canMoveDown = !Physics2D.OverlapCircle(Down.position, 0.1f, wall);
+        canMoveLeft = !Physics2D.OverlapCircle(Left.position, 0.1f, wall);
+        canMoveRight = !Physics2D.OverlapCircle(Right.position, 0.1f, wall);
+        Debug.Log(Up.position);
+        Debug.Log(Down.position);
+        Debug.Log(Left.position);
+        Debug.Log(Right.position);
         canMove = true;
         player = GetComponent<Rigidbody2D>();
         player.position = new Vector2(-1, -1);
         playerPrevPos = player.position;
-        canTouchWall = true;
+        feverBar.fillAmount = 0f;
+        score = 0f;
+        combo = 0f;
+        eachNote = 100f;
         life = 3;
     }
 
     // Update is called once per frame
     void Update()
     {
+        // Fever
+        // Bug: fever does not reset
+        if (combo < 10)
+        {
+            feverBar.fillAmount = combo / 10f;
+        }
+        else
+        {
+            feverBar.fillAmount = 1f;
+            feverMessage.gameObject.SetActive(true);
+            combo = 10;
+            StartCoroutine(Fever());
+        }
+
         // Movement and restricting player from moving back to their previous position
-        if (Input.GetKeyDown(KeyCode.A) && canMoveLeft && canMove)
+        if (Input.GetKeyDown(KeyCode.A) && canMoveLeft)
         {
             StartCoroutine(MoveLeft());
         }
-        else if (Input.GetKeyDown(KeyCode.D) && canMoveRight && canMove)
+        else if (Input.GetKeyDown(KeyCode.D) && canMoveRight)
         {
             StartCoroutine(MoveRight());
         }
-        else if (Input.GetKeyDown(KeyCode.S) && canMoveDown && canMove)
+        else if (Input.GetKeyDown(KeyCode.S) && canMoveDown)
         {
             StartCoroutine(MoveDown());
         }
-        else if (Input.GetKeyDown(KeyCode.W) && canMoveUp && canMove)
+        else if (Input.GetKeyDown(KeyCode.W) && canMoveUp)
         {
             StartCoroutine(MoveUp());
         }
 
-        // Checking if player collided with wall
-        if (player.IsTouchingLayers(wall) && canTouchWall)
+        // Checking if player collide with wall
+        if (Input.GetKeyDown(KeyCode.A) && !canMoveLeft)
         {
-            StartCoroutine(Collide());
+            life -= 1;
+            score -= eachNote;
+            combo = 0;
+            scoreDisplay.text = "Score: " + score.ToString();
+            feverBar.fillAmount = 0f;
+            feverMessage.gameObject.SetActive(false);
+            livesRemaining.text = "Life: " + life.ToString();
+
+            // Checking if player died
+            if (life == 0)
+            {
+                canMove = false;
+                failMessage.gameObject.SetActive(true);
+                player.gameObject.SetActive(false);
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.D) && !canMoveRight)
+        {
+            life -= 1;
+            score -= eachNote;
+            combo = 0;
+            scoreDisplay.text = "Score: " + score.ToString();
+            feverBar.fillAmount = 0f;
+            feverMessage.gameObject.SetActive(false);
+            livesRemaining.text = "Life: " + life.ToString();
+
+            // Checking if player died
+            if (life == 0)
+            {
+                canMove = false;
+                failMessage.gameObject.SetActive(true);
+                player.gameObject.SetActive(false);
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.S) && !canMoveDown)
+        {
+            life -= 1;
+            score -= eachNote;
+            combo = 0;
+            scoreDisplay.text = "Score: " + score.ToString();
+            feverBar.fillAmount = 0f;
+            feverMessage.gameObject.SetActive(false);
+            livesRemaining.text = "Life: " + life.ToString();
+
+            // Checking if player died
+            if (life == 0)
+            {
+                canMove = false;
+                failMessage.gameObject.SetActive(true);
+                player.gameObject.SetActive(false);
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.W) && !canMoveUp)
+        {
+            life -= 1;
+            score -= eachNote;
+            combo = 0;
+            scoreDisplay.text = "Score: " + score.ToString();
+            feverBar.fillAmount = 0f;
+            feverMessage.gameObject.SetActive(false);
+            livesRemaining.text = "Life: " + life.ToString();
+
+            // Checking if player died
+            if (life == 0)
+            {
+                canMove = false;
+                failMessage.gameObject.SetActive(true);
+                player.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (Up.position.y == playerPrevPos.y)
+        {
+            canMoveUp = false;
+            canMoveDown = !Physics2D.OverlapCircle(Down.position, 0.1f, wall);
+            canMoveLeft = !Physics2D.OverlapCircle(Left.position, 0.1f, wall);
+            canMoveRight = !Physics2D.OverlapCircle(Right.position, 0.1f, wall);
+        }
+        else if (Down.position.y == playerPrevPos.y)
+        {
+            canMoveDown = false;
+            canMoveUp = !Physics2D.OverlapCircle(Up.position, 0.1f, wall);
+            canMoveLeft = !Physics2D.OverlapCircle(Left.position, 0.1f, wall);
+            canMoveRight = !Physics2D.OverlapCircle(Right.position, 0.1f, wall);
+        }
+        else if (Left.position.x == playerPrevPos.x)
+        {
+            canMoveLeft = false;
+            canMoveUp = !Physics2D.OverlapCircle(Up.position, 0.1f, wall);
+            canMoveDown = !Physics2D.OverlapCircle(Down.position, 0.1f, wall);
+            canMoveRight = !Physics2D.OverlapCircle(Right.position, 0.1f, wall);
+        }
+        else if (Right.position.x == playerPrevPos.x)
+        {
+            canMoveRight = false;
+            canMoveUp = !Physics2D.OverlapCircle(Up.position, 0.1f, wall);
+            canMoveDown = !Physics2D.OverlapCircle(Down.position, 0.1f, wall);
+            canMoveLeft = !Physics2D.OverlapCircle(Left.position, 0.1f, wall);
+        }
+        else
+        {
+            canMoveUp = !Physics2D.OverlapCircle(Up.position, 0.1f, wall);
+            canMoveDown = !Physics2D.OverlapCircle(Down.position, 0.1f, wall);
+            canMoveLeft = !Physics2D.OverlapCircle(Left.position, 0.1f, wall);
+            canMoveRight = !Physics2D.OverlapCircle(Right.position, 0.1f, wall);
         }
     }
 
     // Bug found: when player collide with wall the direction the player can move is reset so the player can move backwards
     // by making use of this bug
-    IEnumerator Collide()
-    {
-        canTouchWall = false;
-        life -= 1;
-        player.position = playerPrevPos;
-        Debug.Log(player.position);
-        score -= (float)(100 + (100 * combo * 0.2));
-        combo = 0;
-        canMoveLeft = true;
-        canMoveRight = true;
-        canMoveUp = true;
-        canMoveDown = true;
-        scoreDisplay.text = "Score: " + score.ToString();
-        comboDisplay.text = "Combo: " + combo.ToString();
-        livesRemaining.text = "Life: " + life.ToString();
-
-        // Checking if player died
-        if (life == 0)
-        {
-            canMove = false;
-            failMessage.gameObject.SetActive(true);
-            player.gameObject.SetActive(false);
-        }
-
-        yield return new WaitForSeconds(1);
-
-        canTouchWall = true;
-    }
 
     IEnumerator MoveUp()
     {
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x, player.position.y + 2);
-        canMoveDown = false;
-        canMoveRight = true;
-        canMoveLeft = true;
         combo += 1;
-        score += (float)(100 + (100 * combo * 0.2));
+        score += eachNote;
         scoreDisplay.text = "Score: " + score.ToString();
-        comboDisplay.text = "Combo: " + combo.ToString();
 
         yield return new WaitForSeconds(1);
 
@@ -129,13 +230,9 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x, player.position.y - 2);
-        canMoveUp = false;
-        canMoveRight = true;
-        canMoveLeft = true;
         combo += 1;
-        score += (float)(100 + (100 * combo * 0.2));
+        score += eachNote;
         scoreDisplay.text = "Score: " + score.ToString();
-        comboDisplay.text = "Combo: " + combo.ToString();
 
         yield return new WaitForSeconds(1);
 
@@ -147,13 +244,9 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x - 2, player.position.y);
-        canMoveRight = false;
-        canMoveUp = true;
-        canMoveDown = true;
         combo += 1;
-        score += (float)(100 + (100 * combo * 0.2));
+        score += eachNote;
         scoreDisplay.text = "Score: " + score.ToString();
-        comboDisplay.text = "Combo: " + combo.ToString();
 
         yield return new WaitForSeconds(1);
 
@@ -165,16 +258,24 @@ public class PlayerMovement : MonoBehaviour
         canMove = false;
         playerPrevPos = player.position;
         player.position = new Vector2(player.position.x + 2, player.position.y);
-        canMoveLeft = false;
-        canMoveUp = true;
-        canMoveDown = true;
         combo += 1;
-        score += (float)(100 + (100 * combo * 0.2));
+        score += eachNote;
         scoreDisplay.text = "Score: " + score.ToString();
-        comboDisplay.text = "Combo: " + combo.ToString();
 
         yield return new WaitForSeconds(1);
 
         canMove = true;
+    }
+
+    IEnumerator Fever()
+    {
+        eachNote = 200f;
+
+        yield return new WaitForSeconds(10);
+
+        feverBar.fillAmount = 0f;
+        feverMessage.gameObject.SetActive(false);
+        combo = 0;
+        eachNote = 100f;
     }
 }
